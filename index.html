@@ -1312,8 +1312,8 @@ function goTo(n) {
   document.getElementById('prevBtn').disabled = current === 0;
   document.getElementById('nextBtn').disabled = current === total-1;
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Draw charts lazily — small delay ensures the slide is visible and has dimensions
-  setTimeout(() => drawChartsInSlide(slides[current]), 80);
+  // Draw charts lazily — delay ensures slide is visible and scaled before drawing
+  setTimeout(() => drawChartsInSlide(slides[current]), 150);
 }
 
 function changeSlide(dir) {
@@ -1330,26 +1330,42 @@ document.addEventListener('keydown', e => {
 document.getElementById('prevBtn').disabled = true;
 document.getElementById('navCounter').textContent = '1 / '+total;
 
-// ─── Viewport scaling for mobile/tablet ───
+// ─── Viewport scaling for mobile/tablet only ───
 function scaleSlides() {
   const wrap = document.getElementById('slidesWrap');
+  if (window.innerWidth > 1024) {
+    // Desktop: reset any transforms, let CSS handle it normally
+    wrap.style.transform = '';
+    wrap.style.width = '';
+    wrap.style.height = '';
+    wrap.style.position = '';
+    wrap.style.top = '';
+    wrap.style.left = '';
+    return;
+  }
+  // Mobile/tablet: scale 1280×720 canvas to fit the screen
   const W = 1280, H = 720;
   const scaleX = window.innerWidth / W;
   const scaleY = window.innerHeight / H;
   const scale = Math.min(scaleX, scaleY);
   const offsetX = (window.innerWidth  - W * scale) / 2;
   const offsetY = (window.innerHeight - H * scale) / 2;
+  wrap.style.width = W + 'px';
+  wrap.style.height = H + 'px';
+  wrap.style.position = 'absolute';
+  wrap.style.top = '0';
+  wrap.style.left = '0';
   wrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
   wrap.style.transformOrigin = 'top left';
 }
 
 // Run on load and on any resize/orientation change
-window.addEventListener('load', scaleSlides);
 window.addEventListener('resize', scaleSlides);
-window.addEventListener('orientationchange', () => setTimeout(scaleSlides, 100));
+window.addEventListener('orientationchange', () => setTimeout(scaleSlides, 150));
 
 // Draw charts for the first slide on load
 window.addEventListener('load', () => {
+  scaleSlides();
   const slides = document.querySelectorAll('.slide');
   setTimeout(() => drawChartsInSlide(slides[0]), 120);
 });

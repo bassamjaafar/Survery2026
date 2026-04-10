@@ -499,6 +499,7 @@
       min-height: 100vh;
       transform: none !important;
       display: none;
+      flex-direction: column;
     }
 
     .slide.active {
@@ -508,6 +509,7 @@
     /* Header */
     .slide-header {
       padding: 12px 20px;
+      flex-shrink: 0;
     }
 
     .slide-header-logo { width: 36px; height: 36px; }
@@ -516,10 +518,10 @@
 
     /* Body */
     .slide-body {
-      padding: 20px 20px 100px;
-      overflow: visible;
-      height: auto;
-      flex: none;
+      flex: none !important;
+      padding: 16px 16px 100px;
+      overflow: visible !important;
+      height: auto !important;
     }
 
     /* Question text */
@@ -529,8 +531,14 @@
     /* Chart container — fixed height on mobile */
     .chart-container {
       flex: none;
-      height: 320px;
-      min-height: 320px;
+      height: 380px !important;
+      min-height: 380px !important;
+      width: 100%;
+      display: block;
+    }
+
+    .chart-container canvas {
+      height: 380px !important;
     }
 
     /* Avg badge */
@@ -1416,6 +1424,10 @@ function goTo(n) {
   document.getElementById('nextBtn').disabled = current === total-1;
   // Scroll to top on mobile
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Force Chart.js to resize after slide becomes visible
+  setTimeout(() => {
+    Chart.instances.forEach(c => c.resize());
+  }, 50);
 }
 
 function changeSlide(dir) {

@@ -68,16 +68,16 @@
     overflow: hidden;
   }
 
-  .slide-cover::before {
+    .slide-cover::before {
+    display: none;
+  }
+    .slide-cover::after {
     content: '';
     position: absolute;
-    width: 700px; height: 700px;
+    width: 500px; height: 500px;
     border-radius: 50%;
-    background: rgba(2,106,171,0.07);
-    top: -200px; left: -200px;
-  }
-  .slide-cover::after {
-    display: none;
+    background: rgba(141,181,213,0.12);
+    bottom: -150px; right: -100px;
   }
 
   .cover-inner {
@@ -1308,9 +1308,7 @@ function goTo(n) {
   document.getElementById('prevBtn').disabled = current === 0;
   document.getElementById('nextBtn').disabled = current === total-1;
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Draw chart THEN scale — ensures canvas has real dimensions
   drawChartsInSlide(slides[current]);
-  setTimeout(scaleSlides, 50);
 }
 
 function changeSlide(dir) {
@@ -1327,42 +1325,40 @@ document.addEventListener('keydown', e => {
 document.getElementById('prevBtn').disabled = true;
 document.getElementById('navCounter').textContent = '1 / '+total;
 
-// ─── Viewport scaling for mobile/tablet only ───
-const SLIDE_W = 1280, SLIDE_H = 720;
-
-function scaleSlides() {
-  const wrap = document.getElementById('slidesWrap');
-  if (window.innerWidth > 1024) {
-    wrap.style.cssText = '';
+// ─── Mobile scaling via viewport meta ───────────────────────────────────────
+// Instead of transform (which breaks Chart.js), we dynamically set the
+// viewport scale so the 1280px-wide layout fits any screen width.
+function applyMobileScale() {
+  const vw = window.innerWidth;
+  if (vw >= 1024) {
+    // Desktop: restore normal viewport
+    document.querySelector('meta[name=viewport]').setAttribute(
+      'content', 'width=device-width, initial-scale=1.0'
+    );
     return;
   }
-  const scale = Math.min(window.innerWidth / SLIDE_W, window.innerHeight / SLIDE_H);
-  const tx = (window.innerWidth  - SLIDE_W * scale) / 2;
-  const ty = (window.innerHeight - SLIDE_H * scale) / 2;
-  wrap.style.width          = SLIDE_W + 'px';
-  wrap.style.height         = SLIDE_H + 'px';
-  wrap.style.position       = 'absolute';
-  wrap.style.top            = '0';
-  wrap.style.left           = '0';
-  wrap.style.transformOrigin = 'top left';
-  wrap.style.transform      = `translate(${tx}px,${ty}px) scale(${scale})`;
+  // Mobile: set initial-scale so 1280px layout fits the screen
+  const scale = vw / 1280;
+  document.querySelector('meta[name=viewport]').setAttribute(
+    'content', `width=1280, initial-scale=${scale}, maximum-scale=${scale}, minimum-scale=${scale}`
+  );
 }
 
-window.addEventListener('resize', scaleSlides);
+window.addEventListener('resize', applyMobileScale);
 window.addEventListener('orientationchange', () => {
   setTimeout(() => {
     drawnCharts.clear();
+    applyMobileScale();
     const slides = document.querySelectorAll('.slide');
     drawChartsInSlide(slides[current]);
-    setTimeout(scaleSlides, 50);
-  }, 200);
+  }, 300);
 });
 
-// On load: draw first slide charts BEFORE scaling so canvas has real pixel size
+// On load: draw charts first (at natural size), then apply mobile scale
 window.addEventListener('load', () => {
+  applyMobileScale();
   const slides = document.querySelectorAll('.slide');
-  drawChartsInSlide(slides[0]);   // draw at natural 1280×720
-  setTimeout(scaleSlides, 80);    // then scale to fit screen
+  drawChartsInSlide(slides[0]);
 });
 </script>
 </body>

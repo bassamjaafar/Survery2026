@@ -480,104 +480,30 @@
     font-size: 1.2rem;
   }
 
-  /* ─── MOBILE RESPONSIVE ─── */
-  @media (max-width: 768px) {
-
-    /* Allow slides to scroll vertically on mobile */
-    html, body { overflow: auto; }
+  /* ─── MOBILE: Scale entire slide to fit screen ─── */
+  @media (max-width: 1024px) {
+    html, body {
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+    }
 
     .slides-wrap {
-      height: auto;
-      min-height: 100vh;
-      overflow: visible;
+      width: 1280px;
+      height: 720px;
+      position: absolute;
+      top: 0; left: 0;
+      transform-origin: top left;
     }
 
-    .slide {
-      position: relative;
-      inset: auto;
-      height: auto;
-      min-height: 100vh;
-      transform: none !important;
-      display: none;
-      flex-direction: column;
-    }
-
-    .slide.active {
-      display: flex;
-    }
-
-    /* Header */
-    .slide-header {
-      padding: 12px 20px;
-      flex-shrink: 0;
-    }
-
-    .slide-header-logo { width: 36px; height: 36px; }
-    .slide-header-title { font-size: 0.8rem; }
-    .slide-header-num { font-size: 0.75rem; }
-
-    /* Body */
-    .slide-body {
-      flex: none !important;
-      padding: 16px 16px 100px;
-      overflow: visible !important;
-      height: auto !important;
-    }
-
-    /* Question text */
-    .question-label { font-size: 0.7rem; }
-    .question-text { font-size: 1.2rem !important; margin-bottom: 14px; }
-
-    /* Chart container — fixed height on mobile */
-    .chart-container {
-      flex: none;
-      height: 380px !important;
-      min-height: 380px !important;
-      width: 100%;
-      display: block;
-    }
-
-    .chart-container canvas {
-      height: 380px !important;
-    }
-
-    /* Avg badge */
-    .avg-badge { padding: 8px 14px; margin-bottom: 12px; }
-    .avg-num { font-size: 1.4rem; }
-    .avg-label { font-size: 0.75rem; }
-    .avg-stars { font-size: 1rem; }
-
-    /* Quotes grid → single column */
-    .quotes-grid {
-      grid-template-columns: 1fr;
-      overflow: visible;
-    }
-
-    /* Cover slide */
-    .cover-title { font-size: 1.8rem; }
-    .cover-subtitle { font-size: 1rem; }
-    .cover-logo { width: 100px; height: 100px; }
-    .cover-stats { gap: 24px; }
-    .cover-stat-num { font-size: 1.8rem; }
-    .cover-badge { font-size: 0.85rem; padding: 8px 20px; }
-
-    /* Summary */
-    .summary-body {
-      grid-template-columns: 1fr;
-      overflow: visible;
-    }
-
-    /* Navigation */
+    /* nav stays fixed relative to viewport, not the scaled wrap */
     .nav {
       position: fixed;
       bottom: 16px;
-      padding: 8px 14px;
-      gap: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
     }
-
-    .nav-dots { display: none; }
-    .nav-counter { font-size: 0.8rem; min-width: 48px; }
-    .nav-btn { width: 32px; height: 32px; font-size: 1rem; }
   }
 </style>
 </head>
@@ -1404,10 +1330,28 @@ document.addEventListener('keydown', e => {
 document.getElementById('prevBtn').disabled = true;
 document.getElementById('navCounter').textContent = '1 / '+total;
 
+// ─── Viewport scaling for mobile/tablet ───
+function scaleSlides() {
+  const wrap = document.getElementById('slidesWrap');
+  const W = 1280, H = 720;
+  const scaleX = window.innerWidth / W;
+  const scaleY = window.innerHeight / H;
+  const scale = Math.min(scaleX, scaleY);
+  const offsetX = (window.innerWidth  - W * scale) / 2;
+  const offsetY = (window.innerHeight - H * scale) / 2;
+  wrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  wrap.style.transformOrigin = 'top left';
+}
+
+// Run on load and on any resize/orientation change
+window.addEventListener('load', scaleSlides);
+window.addEventListener('resize', scaleSlides);
+window.addEventListener('orientationchange', () => setTimeout(scaleSlides, 100));
+
 // Draw charts for the first slide on load
 window.addEventListener('load', () => {
   const slides = document.querySelectorAll('.slide');
-  setTimeout(() => drawChartsInSlide(slides[0]), 80);
+  setTimeout(() => drawChartsInSlide(slides[0]), 120);
 });
 </script>
 </body>

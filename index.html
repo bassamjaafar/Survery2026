@@ -77,12 +77,7 @@
     top: -200px; left: -200px;
   }
   .slide-cover::after {
-    content: '';
-    position: absolute;
-    width: 500px; height: 500px;
-    border-radius: 50%;
-    background: rgba(141,181,213,0.12);
-    bottom: -150px; right: -100px;
+    display: none;
   }
 
   .cover-inner {
@@ -97,7 +92,6 @@
   .cover-logo {
     width: 520px;
     height: auto;
-    filter: drop-shadow(0 8px 32px rgba(0,0,0,0.4));
   }
 
   .cover-title {
@@ -168,7 +162,6 @@
   .slide-header-logo {
     width: 48px;
     height: 48px;
-    filter: brightness(10);
   }
 
   .slide-header-title {
@@ -1285,14 +1278,6 @@ function drawChartsInSlide(slideEl) {
   slideEl.querySelectorAll('canvas').forEach(canvas => {
     const id = canvas.id;
     if (id && chartDefs[id] && !drawnCharts.has(id)) {
-      // On mobile, the parent is scaled via transform — canvas reports 1280px wide
-      // but may have zero clientHeight if flex layout collapses. Force explicit size.
-      const container = canvas.parentElement;
-      if (container && container.clientHeight === 0) {
-        canvas.style.width  = '100%';
-        canvas.style.height = '380px';
-        canvas.setAttribute('height', '380');
-      }
       drawnCharts.add(id);
       chartDefs[id]();
     }
@@ -1323,9 +1308,9 @@ function goTo(n) {
   document.getElementById('prevBtn').disabled = current === 0;
   document.getElementById('nextBtn').disabled = current === total-1;
   window.scrollTo({ top: 0, behavior: 'smooth' });
-  // Draw charts lazily — longer delay on mobile so scale transform settles first
-  const drawDelay = window.innerWidth <= 1024 ? 350 : 150;
-  setTimeout(() => drawChartsInSlide(slides[current]), drawDelay);
+  // Draw chart THEN scale — ensures canvas has real dimensions
+  drawChartsInSlide(slides[current]);
+  setTimeout(scaleSlides, 50);
 }
 
 function changeSlide(dir) {
@@ -1343,59 +1328,41 @@ document.getElementById('prevBtn').disabled = true;
 document.getElementById('navCounter').textContent = '1 / '+total;
 
 // ─── Viewport scaling for mobile/tablet only ───
+const SLIDE_W = 1280, SLIDE_H = 720;
+
 function scaleSlides() {
   const wrap = document.getElementById('slidesWrap');
   if (window.innerWidth > 1024) {
-    // Desktop: reset any transforms, let CSS handle it normally
-    wrap.style.transform = '';
-    wrap.style.width = '';
-    wrap.style.height = '';
-    wrap.style.position = '';
-    wrap.style.top = '';
-    wrap.style.left = '';
+    wrap.style.cssText = '';
     return;
   }
-  // Mobile/tablet: scale 1280×720 canvas to fit the screen
-  const W = 1280, H = 720;
-  const scaleX = window.innerWidth / W;
-  const scaleY = window.innerHeight / H;
-  const scale = Math.min(scaleX, scaleY);
-  const offsetX = (window.innerWidth  - W * scale) / 2;
-  const offsetY = (window.innerHeight - H * scale) / 2;
-  wrap.style.width = W + 'px';
-  wrap.style.height = H + 'px';
-  wrap.style.position = 'absolute';
-  wrap.style.top = '0';
-  wrap.style.left = '0';
-  wrap.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+  const scale = Math.min(window.innerWidth / SLIDE_W, window.innerHeight / SLIDE_H);
+  const tx = (window.innerWidth  - SLIDE_W * scale) / 2;
+  const ty = (window.innerHeight - SLIDE_H * scale) / 2;
+  wrap.style.width          = SLIDE_W + 'px';
+  wrap.style.height         = SLIDE_H + 'px';
+  wrap.style.position       = 'absolute';
+  wrap.style.top            = '0';
+  wrap.style.left           = '0';
   wrap.style.transformOrigin = 'top left';
+  wrap.style.transform      = `translate(${tx}px,${ty}px) scale(${scale})`;
 }
 
-// Run on load and on any resize/orientation change
 window.addEventListener('resize', scaleSlides);
 window.addEventListener('orientationchange', () => {
   setTimeout(() => {
-    scaleSlides();
-    // Redraw charts after orientation change — canvas dimensions changed
     drawnCharts.clear();
     const slides = document.querySelectorAll('.slide');
     drawChartsInSlide(slides[current]);
-  }, 300);
+    setTimeout(scaleSlides, 50);
+  }, 200);
 });
 
-// Draw charts for the first slide on load
+// On load: draw first slide charts BEFORE scaling so canvas has real pixel size
 window.addEventListener('load', () => {
-  scaleSlides();
   const slides = document.querySelectorAll('.slide');
-  if (window.innerWidth <= 1024) {
-    // Mobile: force reflow after scaling, then draw with generous delay
-    setTimeout(() => {
-      scaleSlides(); // apply scale again after layout settles
-      setTimeout(() => drawChartsInSlide(slides[0]), 200);
-    }, 300);
-  } else {
-    setTimeout(() => drawChartsInSlide(slides[0]), 120);
-  }
+  drawChartsInSlide(slides[0]);   // draw at natural 1280×720
+  setTimeout(scaleSlides, 80);    // then scale to fit screen
 });
 </script>
 </body>
